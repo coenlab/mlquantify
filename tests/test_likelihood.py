@@ -27,6 +27,49 @@ def test_likelihood_methods_fit_predict_binary(quantifier_class, binary_dataset)
     _assert_valid_prevalence(prevalence, n_classes=2)
 
 
+def test_mlpe_fits_the_estimator_once(multiclass_dataset):
+    """MLPE must not cross-validate: its estimate never uses the estimator.
+
+    The estimate is the training prevalence, so out-of-sample predictions add
+    nothing to it. One fit is kept, so that ``estimator_`` is there as for any
+    other aggregative quantifier.
+    """
+    X, y = multiclass_dataset
+
+    class CountingLogisticRegression(LogisticRegression):
+        fits = 0
+
+        def fit(self, X, y, sample_weight=None):
+            type(self).fits += 1
+            return super().fit(X, y, sample_weight=sample_weight)
+
+    estimator = CountingLogisticRegression(max_iter=1000, random_state=42)
+    q = MLPE(estimator=estimator).fit(X, y)
+
+    assert CountingLogisticRegression.fits == 1
+    assert hasattr(q, "estimator_")
+
+    with config_context(prevalence_return_type="array"):
+        prevalence = np.asarray(q.predict(X), dtype=float)
+
+    expected = np.asarray([np.mean(y == cls) for cls in np.unique(y)], dtype=float)
+    np.testing.assert_allclose(prevalence, expected)
+
+
+@pytest.mark.parametrize("cv", [None, 2, 5])
+def test_mlpe_ignores_cv(multiclass_dataset, cv):
+    """``cv`` is accepted for signature compatibility and changes nothing."""
+    X, y = multiclass_dataset
+    q = MLPE(estimator=LogisticRegression(max_iter=1000, random_state=42), cv=cv)
+    q.fit(X, y)
+
+    with config_context(prevalence_return_type="array"):
+        prevalence = np.asarray(q.predict(X), dtype=float)
+
+    expected = np.asarray([np.mean(y == cls) for cls in np.unique(y)], dtype=float)
+    np.testing.assert_allclose(prevalence, expected)
+
+
 def test_emq_multiclass(multiclass_dataset):
     X, y = multiclass_dataset
     q = EMQ(estimator=LogisticRegression(max_iter=1000, random_state=42))

@@ -2,7 +2,12 @@
 
 import numpy as np
 
-from mlquantify.base_aggregative import AggregativeMixin, SoftPredictionMixin
+from mlquantify.base_aggregative import (
+    AggregativeMixin,
+    SoftPredictionMixin,
+    _get_estimator,
+    _get_estimator_function,
+)
 from mlquantify.compose import LikelihoodComposeQuantifier
 from mlquantify.representations import PredictionRepresentation
 from mlquantify.utils._validation import validate_prevalences
@@ -103,6 +108,45 @@ class MLPE(SoftPredictionMixin, AggregativeMixin, LikelihoodComposeQuantifier):
         self.stratified = stratified
         self.shuffle = shuffle
         self.random_state = random_state
+
+    def _fit_estimator_predictions(
+        self,
+        X,
+        y,
+        estimator_fitted=False,
+        cv=None,
+        stratified=None,
+        shuffle=None,
+        random_state=None,
+        cv_prediction="refit",
+    ):
+        """Fit the estimator once, without cross-validation.
+
+        The aggregative path cross-validates the estimator to obtain
+        out-of-sample predictions, because an aggregation function trained on
+        in-sample posteriors would be optimistically biased. MLPE has no
+        aggregation function to train: the estimate is the training
+        prevalence, read from ``y``. The cross-validation was therefore pure
+        cost -- at the default ``cv`` it fit the estimator six times (five
+        folds plus the refit) and called ``predict_proba`` five times, and
+        then the estimate ignored all of it.
+
+        A single fit is kept so that ``estimator_`` is still there after
+        ``fit``, as it is for every other aggregative quantifier.
+
+        ``cv``, ``stratified``, ``shuffle`` and the local ``random_state``
+        are accepted and ignored, which is what the class docstring already
+        said of the estimator itself.
+        """
+        estimator = _get_estimator(self)
+        estimator_function = _get_estimator_function(self)
+
+        if not estimator_fitted:
+            # Fit in place, as the refit of the cross-validated path does.
+            estimator = estimator.fit(X, y)
+        self.estimator_ = estimator
+
+        return getattr(estimator, estimator_function)(X), y
 
     def predict(self, X):
         """Return the training prevalence, ignoring ``X``.

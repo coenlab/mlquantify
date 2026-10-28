@@ -14,8 +14,15 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.10', '3.11', '3.12', '3.13']
         include:
+          # ubuntu-latest now resolves to Ubuntu 26.04, for which
+          # actions/setup-python has no 3.9 build: the job failed at the setup
+          # step with "The version '3.9' with architecture 'x64' was not found
+          # for Ubuntu 26.04". 22.04 still carries it, and pyproject declares
+          # requires-python >= 3.9, so the version stays covered.
+          - os: ubuntu-22.04
+            python-version: '3.9'
           # Cross-platform smoke check on a single Python.
           - os: windows-latest
             python-version: '3.12'

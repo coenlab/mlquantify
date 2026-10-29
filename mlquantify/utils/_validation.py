@@ -425,10 +425,27 @@ def normalize_prevalences(
             row_sums = arr.sum(axis=1, keepdims=True)
             np.divide(arr, row_sums, out=arr, where=row_sums != 0)
             arr = arr.mean(axis=0)
-        
+
         total = arr.sum()
         if total > 0:
             arr /= total
+        else:
+            # Nothing to normalize: every entry came out zero. This happens in
+            # the one-vs-rest path, where each binary quantifier clips its own
+            # estimate to [0, 1] before the estimates are combined -- in a
+            # small sample of a hard multiclass problem the adjustment can
+            # land below zero for every class at once, and all of them clip to
+            # zero. Leaving the vector as it is returns all-zeros as if it were
+            # an estimate: it sums to 0, so it is not a prevalence vector at
+            # all, and every error measure then reads it as a confident wrong
+            # answer rather than as no answer. The uniform distribution is
+            # already this library's answer for a non-positive sum: it is what
+            # utils.prevalence.normalize_prevalence returns, asserted by
+            # test_normalize_prevalence_zero_sum_is_uniform, and what the
+            # matching module's normalize_simplex returns. This function was
+            # the one place that did not honour it -- and the one the
+            # quantifiers go through.
+            arr = np.ones_like(arr) / arr.shape[-1]
 
     elif method == 'softmax':
         from scipy.special import softmax

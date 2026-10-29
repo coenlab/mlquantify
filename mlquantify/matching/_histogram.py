@@ -110,6 +110,7 @@ class MatchingHistogramQuantifier(BaseMatchingQuantifier):
         histogram_features=None,
         bin_strategy=None,
         laplace_smoothing=False,
+        bin_edges="fixed",
     ):
         if bins_size is None:
             bins_size = np.append(np.linspace(2, 20, 10), 30).astype(int)
@@ -122,6 +123,7 @@ class MatchingHistogramQuantifier(BaseMatchingQuantifier):
         self.histogram_features = histogram_features
         self.bin_strategy = bin_strategy
         self.laplace_smoothing = laplace_smoothing
+        self.bin_edges = bin_edges
         super().__init__(
             representation=HistogramRepresentation(
                 bins=bins_size,
@@ -129,6 +131,7 @@ class MatchingHistogramQuantifier(BaseMatchingQuantifier):
                 features=histogram_features,
                 partition_blocks=bin_strategy in {"median", "mean"},
                 laplace_smoothing=laplace_smoothing,
+                bin_edges=bin_edges,
             ),
             normalize=True,
         )
@@ -636,6 +639,13 @@ class HDx(MatchingHistogramQuantifier):
             distance="hellinger",
             solver="ternary",
             strategy=strategy,
+            # HDx bins raw features, which are on the data's own scale, so the
+            # bin edges come from the training features. The score-space
+            # siblings (HDy, DyS) keep the fixed [0, 1] edges, which is right
+            # for posteriors. With fixed edges here every feature value
+            # outside [0, 1] fell out of the histogram, and the estimate
+            # stopped depending on the test sample.
+            bin_edges="auto",
         )
 
     def fit(self, X, y, sample_weight=None):

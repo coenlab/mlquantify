@@ -57,6 +57,69 @@ def test_histogram_feature_matching_binary(binary_dataset):
     assert q.best_distance_ is not None
 
 
+def _shifted_split(prevalence, seed=0, n_train=800, n_test=600):
+    """Balanced training split and a test sample at the given prevalence."""
+    from sklearn.datasets import make_classification
+
+    X, y = make_classification(
+        n_samples=4000, n_features=6, n_informative=4, n_redundant=0,
+        n_classes=2, random_state=seed,
+    )
+    rng = np.random.default_rng(seed)
+    order = rng.permutation(len(y))
+    X, y = X[order], y[order]
+
+    train = np.concatenate([
+        np.where(y == 0)[0][:n_train // 2],
+        np.where(y == 1)[0][:n_train // 2],
+    ])
+    rest = np.setdiff1d(np.arange(len(y)), train)
+    n_pos = int(round(n_test * prevalence))
+    test = np.concatenate([
+        rest[y[rest] == 1][:n_pos],
+        rest[y[rest] == 0][:n_test - n_pos],
+    ])
+    return X[train], y[train], X[test], y[test]
+
+
+@pytest.mark.parametrize("prevalence", [0.1, 0.5, 0.9])
+def test_hdx_tracks_the_test_prevalence_on_unscaled_features(prevalence):
+    """HDx must bin raw features on their own scale.
+
+    The bin edges used to be fixed to [0, 1], which is right for the
+    score-space siblings but discards every feature value outside that range.
+    The estimate then stopped depending on the test sample: it came out near
+    0.64 whether the true prevalence was 0.1 or 0.9.
+    """
+    X_train, y_train, X_test, y_test = _shifted_split(prevalence)
+    true_prevalence = float(np.mean(y_test == 1))
+
+    q = HDx(bins_size=[8]).fit(X_train, y_train)
+    with config_context(prevalence_return_type="array"):
+        estimate = np.asarray(q.predict(X_test), dtype=float)
+
+    _assert_valid_prevalence(estimate, n_classes=2)
+    assert abs(estimate[1] - true_prevalence) < 0.1
+
+
+def test_hdx_is_invariant_to_feature_scaling():
+    """Binning on the data's own scale makes a monotone rescaling irrelevant."""
+    from sklearn.preprocessing import MinMaxScaler
+
+    X_train, y_train, X_test, _ = _shifted_split(0.3)
+    scaler = MinMaxScaler().fit(X_train)
+
+    def estimate(A, B):
+        q = HDx(bins_size=[8]).fit(A, y_train)
+        with config_context(prevalence_return_type="array"):
+            return np.asarray(q.predict(B), dtype=float)
+
+    raw = estimate(X_train, X_test)
+    scaled = estimate(scaler.transform(X_train), scaler.transform(X_test))
+
+    np.testing.assert_allclose(raw, scaled, atol=0.05)
+
+
 def test_hdy_matches_median_grid_recipe():
     train_scores = np.asarray(
         [

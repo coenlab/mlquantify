@@ -2,7 +2,12 @@
 
 import numpy as np
 
-from mlquantify.base_aggregative import AggregativeMixin, SoftPredictionMixin
+from mlquantify.base_aggregative import (
+    AggregativeMixin,
+    SoftPredictionMixin,
+    _get_estimator,
+    _get_estimator_function,
+)
 from mlquantify.compose import LikelihoodComposeQuantifier
 from mlquantify.representations import PredictionRepresentation
 from mlquantify.utils._validation import validate_prevalences
@@ -27,12 +32,12 @@ class MLPE(SoftPredictionMixin, AggregativeMixin, LikelihoodComposeQuantifier):
     solver, tau_0, tau_1 : optional
         Retained for interface compatibility with the likelihood-composition
         framework; unused by this trivial baseline.
-    cv : int or None, default=None
-        Cross-validation folds used when fitting the (unused) estimator.
-    stratified : bool, default=True
-        Whether to stratify CV splits.
-    shuffle : bool, default=False
-        Whether to shuffle data before splitting.
+    cv, stratified, shuffle : optional
+        Accepted for signature compatibility with the aggregative
+        quantifiers, and ignored: there is no cross-validation to
+        configure. The estimator is fitted once, because the estimate is
+        the training prevalence and never reads the estimator's
+        predictions.
     random_state : int or None, default=None
         Random seed for reproducibility.
 
@@ -103,6 +108,50 @@ class MLPE(SoftPredictionMixin, AggregativeMixin, LikelihoodComposeQuantifier):
         self.stratified = stratified
         self.shuffle = shuffle
         self.random_state = random_state
+
+    def _fit_estimator_predictions(
+        self,
+        X,
+        y,
+        estimator_fitted=False,
+        cv=None,
+        stratified=None,
+        shuffle=None,
+        random_state=None,
+        cv_prediction="refit",
+    ):
+        """Fit the estimator once, without cross-validation.
+
+        The aggregative path cross-validates the estimator to obtain
+        out-of-sample predictions, because an aggregation function trained on
+        in-sample posteriors would be optimistically biased. MLPE has no
+        aggregation function to train: the estimate is the training
+        prevalence, read from ``y``. The cross-validation was therefore pure
+        cost -- at the default ``cv`` it fit the estimator six times (five
+        folds plus the refit) and called ``predict_proba`` five times, and
+        then the estimate ignored all of it.
+
+        A single fit is kept so that ``estimator_`` is still there after
+        ``fit``, as it is for every other aggregative quantifier.
+
+        ``y`` is returned unchanged. The cross-validated path returned it
+        in fold order -- a permutation of the same labels -- and the caller
+        uses it only to compute ``train_priors_``, which a permutation does
+        not change. That is why the estimate is unaffected.
+
+        ``cv``, ``stratified``, ``shuffle`` and the local ``random_state``
+        are accepted and ignored, which is what the class docstring already
+        said of the estimator itself.
+        """
+        estimator = _get_estimator(self)
+        estimator_function = _get_estimator_function(self)
+
+        if not estimator_fitted:
+            # Fit in place, as the refit of the cross-validated path does.
+            estimator = estimator.fit(X, y)
+        self.estimator_ = estimator
+
+        return getattr(estimator, estimator_function)(X), y
 
     def predict(self, X):
         """Return the training prevalence, ignoring ``X``.

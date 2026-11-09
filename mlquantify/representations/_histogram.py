@@ -16,6 +16,7 @@ class HistogramRepresentation(BaseRepresentation):
         The lower and upper bounds for the histogram range.
     mode : str, default="histogram"
         The mode of the histogram. Options are:
+
         - "histogram": Compute the histogram counts.
         - "onehot": Compute a one-hot encoding of the histogram. In this mode, the output is a binary vector indicating which bin each value falls into, averaged over all samples.
     features : array-like of shape (n_features,), default=None
@@ -39,9 +40,15 @@ class HistogramRepresentation(BaseRepresentation):
         ``(slice(0, 3), slice(3, 7))``. To extract the second feature's block from a
         representation ``rep`` you can use ``rep[block_slices_[1]]`` which returns the
         4-element histogram for that feature.
-        The method for determining bin edges. Options are:
-        - "fixed": Use fixed bin edges based on the ``range`` parameter.
-        - "quantile": Use quantile-based bin edges.
+    bin_edges : {'fixed', 'auto'}, default='fixed'
+        Where the bin edges are placed.
+
+        - ``'fixed'``: equal-width edges spanning ``range``.
+        - ``'auto'``: per-feature edges fitted to the data in ``fit``, with
+          the outer bins left unbounded so values beyond the fitted range
+          fall in the end bins instead of being dropped. This is what
+          histograms of raw features need, since features are not on the
+          ``[0, 1]`` scale that ``range`` defaults to.
     laplace_smoothing : bool, default=False
         Whether to apply Laplace smoothing to the histogram counts.
 

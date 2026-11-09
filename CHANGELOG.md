@@ -6,7 +6,89 @@ All notable changes to mlquantify will be documented in this file.
 
 ## [Unreleased]
 
-_Nothing yet. Add user-visible changes here as they land._
+### Fixed
+
+- **`HDx` bins raw features on their own scale, and its estimates change.** It
+  inherited the histogram range of its score-space siblings:
+  `HistogramRepresentation` defaults to ``range=(0, 1)`` with
+  ``bin_edges="fixed"``, which is right for `HDy` and `DyS`, whose input is a
+  posterior, and wrong for feature values. ``np.histogram`` drops whatever falls
+  outside the range, so on unscaled data most of every feature was discarded and
+  the estimate stopped depending on the test sample — on a 6-feature problem it
+  returned 0.637, 0.632 and 0.708 for true prevalences of 0.1, 0.5 and 0.9,
+  close to a constant predictor. It now returns 0.097, 0.486 and 0.842, matching
+  QuaPy's `DMx`, QuantificationLib's `HDX` and qunfold's `HDx` at the same bin
+  count to within 0.01. `MatchingHistogramQuantifier` gained a ``bin_edges``
+  parameter, defaulting to ``"fixed"`` so that `HDy`, `DyS` and everything else
+  in score space are untouched. **Anyone holding `HDx` results from v0.5.1 or
+  earlier should expect different numbers.** (#9)
+- **A prevalence estimate is never returned as an all-zeros vector, and the
+  affected estimates change.** In the one-vs-rest path each binary quantifier
+  clips its own estimate to ``[0, 1]`` before the estimates are combined, and in
+  a small sample of a hard multiclass problem every class could clip to zero at
+  once. The combined vector then summed to 0, and ``normalize_prevalences``
+  skipped the division and handed it back as if it were an estimate — every
+  error measure reads that as a confident wrong answer instead of as no answer.
+  It now returns the uniform distribution, which is what
+  ``normalize_prevalence`` and ``normalize_simplex`` already did for a
+  non-positive sum; ``normalize_prevalences``, the one the quantifiers reach
+  through ``validate_prevalences``, was the only place that did not honour the
+  contract. Measured over 200 samples of size 10 from a 3-class problem, the
+  cases affected were `CDE` 200/200, `MS` 61, `MS2` 58, `TAC` 11, `MAX` 10,
+  `ACC` 6, `HDy` 5, `T50` 3 and `X` 1; on those samples the absolute error drops
+  from 0.3333 to about 0.12. The fallback also covers a negative sum, where
+  dividing would flip every sign. (#10)
+- **`MLPE` fits its estimator once instead of cross-validating it.** The
+  estimate is the training prevalence and never reads the estimator's
+  predictions, but the quantifier still went through the full aggregative path:
+  at the default ``cv`` that cost six estimator fits and five ``predict_proba``
+  calls per ``fit``, all discarded. It is now one of each, and ``fit`` time over
+  four datasets fell from 1.3037 s to 0.2190 s. ``cv``, ``stratified`` and
+  ``shuffle`` are still accepted and now have nothing to do. **The estimate is
+  unchanged.** (#6)
+
+### Documentation
+
+- `CDE` documents when the iteration helps and when it turns against you. The
+  cost update has an amplifying fixed point, which is what corrects `CC`'s
+  shrinkage towards the training prevalence and also what turns a weak scorer
+  against the estimate. A measured table shows `CDE` ahead of `CC` and `ACC`
+  while the scorer ranks well and behind plain counting below an AUC of roughly
+  0.8; at 0.51 it is worse than returning the training prevalence. Tasche (2017)
+  shows by counter-example that CDE-Iterate is not Fisher consistent, while
+  adjusted count and the EM algorithm are. (#8)
+- `CDE`'s reference was wrong. The docstring opens "CDE-Iterate quantifier" but
+  cited Barranquero, Díez & del Coz (2015), which introduces
+  quantification-oriented learning and the Q-measure. CDE-Iterate is Xue & Weiss
+  (KDD 2009); both that paper and Tasche (2017) are now cited. (#8)
+- `HistogramRepresentation`'s ``bin_edges`` had no entry in its Parameters
+  section — its description sat inside the nested example of
+  ``partition_blocks``, so numpydoc read it as part of that parameter. The
+  options listed were ``"fixed"`` and ``"quantile"``, while the code accepts
+  ``"fixed"`` and ``"auto"`` and raises on anything else. Every ``__init__``
+  parameter is now documented, in signature order. (#11)
+- `MLPE`'s Parameters section no longer advertises cross-validation folds for a
+  class that does not cross-validate. (#6)
+
+### Internal
+
+- The 3.9 test job runs on ``ubuntu-22.04``. ``ubuntu-latest`` now resolves to
+  Ubuntu 26.04, for which ``actions/setup-python`` has no 3.9 build, so the job
+  failed at the setup step before pip or pytest ran. The matrix still generates
+  the same seven jobs and no interpreter version is dropped, which matters
+  because ``pyproject.toml`` declares ``requires-python >= 3.9``. (#7)
+
+### Tests
+
+- Thirteen regression tests covering the fixes above. Ten of them fail on
+  v0.5.1: that `HDx` tracks the test prevalence at 0.1, 0.5 and 0.9 on unscaled
+  features and is invariant to min-max scaling; that ``normalize_prevalences``
+  returns a uniform vector on a zero sum and on a non-positive one, and that
+  `ACC`, `MS` and `CDE` never return a vector that fails to sum to 1 on small
+  samples; and that `MLPE` fits its estimator exactly once and keeps
+  ``estimator_``. The remaining three, which assert that `MLPE` gives the same
+  answer for every ``cv``, already passed on v0.5.1 and guard against
+  regression rather than capturing the bug.
 
 ---
 

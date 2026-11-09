@@ -2,18 +2,11 @@
 
 import numpy as np
 
-from mlquantify.base_aggregative import (
-    AggregativeMixin,
-    SoftPredictionMixin,
-    _get_estimator,
-    _get_estimator_function,
-)
 from mlquantify.compose import LikelihoodComposeQuantifier
-from mlquantify.representations import PredictionRepresentation
 from mlquantify.utils._validation import validate_prevalences
 
 
-class MLPE(SoftPredictionMixin, AggregativeMixin, LikelihoodComposeQuantifier):
+class MLPE(LikelihoodComposeQuantifier):
     r"""Maximum Likelihood Prevalence Estimation (MLPE) quantifier.
 
     The trivial quantification baseline. Under the assumption of *no* shift, the
@@ -23,21 +16,17 @@ class MLPE(SoftPredictionMixin, AggregativeMixin, LikelihoodComposeQuantifier):
     any genuine quantifier should beat; if a method cannot improve on MLPE, it
     is not exploiting the test data.
 
+    It is **not** aggregative and takes no estimator. ``fit`` reads the class
+    proportions from ``y``; nothing is trained, and no posterior is ever
+    computed. Taking a classifier would be taking one in order to never use
+    it: the estimate does not depend on it, and fitting it was the whole cost
+    of the method.
+
     Parameters
     ----------
-    estimator : estimator, optional
-        Kept for API compatibility with the aggregative quantifiers; it does
-        **not** influence the estimate, since MLPE returns the training
-        prevalence regardless of the test input.
     solver, tau_0, tau_1 : optional
         Retained for interface compatibility with the likelihood-composition
         framework; unused by this trivial baseline.
-    cv, stratified, shuffle : optional
-        Accepted for signature compatibility with the aggregative
-        quantifiers, and ignored: there is no cross-validation to
-        configure. The estimator is fitted once, because the estimate is
-        the training prevalence and never reads the estimator's
-        predictions.
     random_state : int or None, default=None
         Random seed for reproducibility.
 
@@ -54,6 +43,10 @@ class MLPE(SoftPredictionMixin, AggregativeMixin, LikelihoodComposeQuantifier):
     baseline. Contrast with :class:`EMQ`, the non-trivial maximum-likelihood
     quantifier that re-weights the posteriors to the test set.
 
+    Being non-aggregative, it has no ``estimator_`` after ``fit``, and
+    ``cv``, ``stratified`` and ``shuffle`` are gone from the signature: there
+    is no out-of-sample prediction to configure.
+
     See Also
     --------
     EMQ : Non-trivial maximum-likelihood quantifier (EM re-weighting).
@@ -62,12 +55,11 @@ class MLPE(SoftPredictionMixin, AggregativeMixin, LikelihoodComposeQuantifier):
     Examples
     --------
     >>> from mlquantify.likelihood import MLPE
-    >>> from sklearn.linear_model import LogisticRegression
     >>> import numpy as np
     >>> rng = np.random.default_rng(0)
     >>> X = rng.standard_normal((200, 4))
     >>> y = (rng.random(200) < 0.3).astype(int)
-    >>> q = MLPE(LogisticRegression()).fit(X, y)
+    >>> q = MLPE().fit(X, y)
     >>> q.predict(rng.standard_normal((50, 4)))  # returns the training prevalence
     {0: ..., 1: ...}
 
@@ -81,77 +73,28 @@ class MLPE(SoftPredictionMixin, AggregativeMixin, LikelihoodComposeQuantifier):
     """
 
 
+    # Keyword-only on purpose. With positional parameters, a caller written
+    # for the old signature -- ``MLPE(LogisticRegression())`` -- would bind the
+    # classifier to ``solver`` and run on silently misconfigured. A TypeError
+    # is the right answer to asking for an estimator this method no longer has.
     def __init__(
         self,
-        estimator=None,
+        *,
         solver="slsqp",
         tau_0=0.0,
         tau_1=0.0,
-        cv=None,
-        stratified=True,
-        shuffle=False,
         random_state=None,
     ):
         super().__init__(
-            estimator=estimator,
-            representation=PredictionRepresentation(
-                method="soft",
-                average=False,
-            ),
+            representation=None,
+            estimator=None,
             solver=solver,
-            aggregative=True,
+            aggregative=False,
             tau_0=tau_0,
             tau_1=tau_1,
             random_state=random_state,
         )
-        self.cv = cv
-        self.stratified = stratified
-        self.shuffle = shuffle
         self.random_state = random_state
-
-    def _fit_estimator_predictions(
-        self,
-        X,
-        y,
-        estimator_fitted=False,
-        cv=None,
-        stratified=None,
-        shuffle=None,
-        random_state=None,
-        cv_prediction="refit",
-    ):
-        """Fit the estimator once, without cross-validation.
-
-        The aggregative path cross-validates the estimator to obtain
-        out-of-sample predictions, because an aggregation function trained on
-        in-sample posteriors would be optimistically biased. MLPE has no
-        aggregation function to train: the estimate is the training
-        prevalence, read from ``y``. The cross-validation was therefore pure
-        cost -- at the default ``cv`` it fit the estimator six times (five
-        folds plus the refit) and called ``predict_proba`` five times, and
-        then the estimate ignored all of it.
-
-        A single fit is kept so that ``estimator_`` is still there after
-        ``fit``, as it is for every other aggregative quantifier.
-
-        ``y`` is returned unchanged. The cross-validated path returned it
-        in fold order -- a permutation of the same labels -- and the caller
-        uses it only to compute ``train_priors_``, which a permutation does
-        not change. That is why the estimate is unaffected.
-
-        ``cv``, ``stratified``, ``shuffle`` and the local ``random_state``
-        are accepted and ignored, which is what the class docstring already
-        said of the estimator itself.
-        """
-        estimator = _get_estimator(self)
-        estimator_function = _get_estimator_function(self)
-
-        if not estimator_fitted:
-            # Fit in place, as the refit of the cross-validated path does.
-            estimator = estimator.fit(X, y)
-        self.estimator_ = estimator
-
-        return getattr(estimator, estimator_function)(X), y
 
     def predict(self, X):
         """Return the training prevalence, ignoring ``X``.

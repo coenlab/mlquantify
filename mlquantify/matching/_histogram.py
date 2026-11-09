@@ -77,6 +77,10 @@ class MatchingHistogramQuantifier(BaseMatchingQuantifier):
         Number of score columns used to build histograms.
     bin_strategy : str or None, default=None
         Aggregation strategy across bin sizes (``'median'`` or ``'mean'``).
+    bin_edges : {'fixed', 'auto'}, default='fixed'
+        Where the bin edges are placed. ``'fixed'`` spans ``[0, 1]``, which
+        is right for histograms of posteriors; ``'auto'`` fits the edges to
+        the range of the training data, which is what raw features need.
 
     Attributes
     ----------
@@ -639,12 +643,15 @@ class HDx(MatchingHistogramQuantifier):
             distance="hellinger",
             solver="ternary",
             strategy=strategy,
-            # HDx bins raw features, which are on the data's own scale, so the
-            # bin edges come from the training features. The score-space
-            # siblings (HDy, DyS) keep the fixed [0, 1] edges, which is right
-            # for posteriors. With fixed edges here every feature value
-            # outside [0, 1] fell out of the histogram, and the estimate
-            # stopped depending on the test sample.
+            # HDx bins raw features, which are on the data's own scale, so
+            # the bin edges come from the training features -- as GHDx and
+            # GHDy, the generalized siblings, already did. The score-space
+            # siblings (HDy, DyS) keep the fixed [0, 1] edges, which is
+            # right for posteriors. With fixed edges here every feature
+            # value outside [0, 1] fell out of the histogram, and the
+            # estimate stopped depending on the test sample. Edges fitted
+            # to the training range still drop test values beyond it, but
+            # that is a tail rather than most of the data.
             bin_edges="auto",
         )
 

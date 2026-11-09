@@ -729,7 +729,7 @@
 <h1>MLPE<a class="headerlink" href="#mlpe" title="Link to this heading">#</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="mlquantify.likelihood.MLPE">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mlquantify.likelihood.</span></span><span class="sig-name descname"><span class="pre">MLPE</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">estimator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'slsqp'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau_0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau_1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stratified</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shuffle</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/luizfernandolj/mlquantify/tree/master/mlquantify/likelihood/_generalized.py#L16-L201"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mlquantify.likelihood.MLPE" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mlquantify.likelihood.</span></span><span class="sig-name descname"><span class="pre">MLPE</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'slsqp'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau_0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau_1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/luizfernandolj/mlquantify/tree/master/mlquantify/likelihood/_generalized.py#L9-L144"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mlquantify.likelihood.MLPE" title="Link to this definition">#</a></dt>
 <dd><p>Maximum Likelihood Prevalence Estimation (MLPE) quantifier.</p>
 <p>The trivial quantification baseline. Under the assumption of <em>no</em> shift, the
 maximum-likelihood estimate of the test prevalence is exactly the observed
@@ -737,21 +737,16 @@ training prevalence, so MLPE ignores the test set entirely and always
 returns the training class proportions. It is the reference lower bound that
 any genuine quantifier should beat; if a method cannot improve on MLPE, it
 is not exploiting the test data.</p>
+<p>It is <strong>not</strong> aggregative and takes no estimator. <code class="docutils literal notranslate"><span class="pre">fit</span></code> reads the class
+proportions from <code class="docutils literal notranslate"><span class="pre">y</span></code>; nothing is trained, and no posterior is ever
+computed. Taking a classifier would be taking one in order to never use
+it: the estimate does not depend on it, and fitting it was the whole cost
+of the method.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>estimator</strong><span class="classifier">estimator, optional</span></dt><dd><p>Kept for API compatibility with the aggregative quantifiers; it does
-<strong>not</strong> influence the estimate, since MLPE returns the training
-prevalence regardless of the test input.</p>
-</dd>
 <dt><strong>solver, tau_0, tau_1</strong><span class="classifier">optional</span></dt><dd><p>Retained for interface compatibility with the likelihood-composition
 framework; unused by this trivial baseline.</p>
-</dd>
-<dt><strong>cv, stratified, shuffle</strong><span class="classifier">optional</span></dt><dd><p>Accepted for signature compatibility with the aggregative
-quantifiers, and ignored: there is no cross-validation to
-configure. The estimator is fitted once, because the estimate is
-the training prevalence and never reads the estimator’s
-predictions.</p>
 </dd>
 <dt><strong>random_state</strong><span class="classifier">int or None, default=None</span></dt><dd><p>Random seed for reproducibility.</p>
 </dd>
@@ -779,6 +774,9 @@ predictions.</p>
 <p>MLPE makes no use of the test data; it is included only as a sanity-check
 baseline. Contrast with <a class="reference internal" href="mlquantify.likelihood.EMQ.html#mlquantify.likelihood.EMQ" title="mlquantify.likelihood.EMQ"><code class="xref py py-class docutils literal notranslate"><span class="pre">EMQ</span></code></a>, the non-trivial maximum-likelihood
 quantifier that re-weights the posteriors to the test set.</p>
+<p>Being non-aggregative, it has no <code class="docutils literal notranslate"><span class="pre">estimator_</span></code> after <code class="docutils literal notranslate"><span class="pre">fit</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">cv</span></code>, <code class="docutils literal notranslate"><span class="pre">stratified</span></code> and <code class="docutils literal notranslate"><span class="pre">shuffle</span></code> are gone from the signature: there
+is no out-of-sample prediction to configure.</p>
 <p class="rubric">References</p>
 <details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
 <summary class="sd-summary-title sd-card-header">
@@ -794,19 +792,18 @@ Adjusting the Outputs of a Classifier to New a Priori Probabilities.
 </div>
 </details><p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">mlquantify.likelihood</span><span class="w"> </span><span class="kn">import</span> <span class="n">MLPE</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.linear_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">LogisticRegression</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">X</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">((</span><span class="mi">200</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="mi">200</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.3</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">q</span> <span class="o">=</span> <span class="n">MLPE</span><span class="p">(</span><span class="n">LogisticRegression</span><span class="p">())</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">q</span> <span class="o">=</span> <span class="n">MLPE</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">q</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">((</span><span class="mi">50</span><span class="p">,</span> <span class="mi">4</span><span class="p">)))</span>  <span class="c1"># returns the training prevalence</span>
 <span class="go">{0: ..., 1: ...}</span>
 </pre></div>
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="mlquantify.likelihood.MLPE.aggregate">
-<span class="sig-name descname"><span class="pre">aggregate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">test_representation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_representation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">classes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/luizfernandolj/mlquantify/tree/master/mlquantify/likelihood/_generalized.py#L174-L201"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mlquantify.likelihood.MLPE.aggregate" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">aggregate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">test_representation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_representation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">classes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/luizfernandolj/mlquantify/tree/master/mlquantify/likelihood/_generalized.py#L117-L144"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mlquantify.likelihood.MLPE.aggregate" title="Link to this definition">#</a></dt>
 <dd><p>Return the training prevalence, ignoring the test representation.</p>
 <p>If <code class="docutils literal notranslate"><span class="pre">train_labels</span></code> is provided its class prevalence is used; otherwise
 the prevalence observed at <code class="docutils literal notranslate"><span class="pre">fit</span></code> time (<code class="docutils literal notranslate"><span class="pre">train_priors_</span></code>) is returned.</p>
@@ -863,7 +860,7 @@ routing information.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="mlquantify.likelihood.MLPE.get_params">
-<span class="sig-name descname"><span class="pre">get_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">deep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/luizfernandolj/mlquantify/tree/master/mlquantify/base_aggregative.py#L208-L227"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mlquantify.likelihood.MLPE.get_params" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">get_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">deep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/luizfernandolj/mlquantify/tree/master/mlquantify/likelihood.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mlquantify.likelihood.MLPE.get_params" title="Link to this definition">#</a></dt>
 <dd><p>Get parameters for this estimator.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -884,7 +881,7 @@ contained subobjects that are estimators.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="mlquantify.likelihood.MLPE.predict">
-<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/luizfernandolj/mlquantify/tree/master/mlquantify/likelihood/_generalized.py#L156-L172"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mlquantify.likelihood.MLPE.predict" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/luizfernandolj/mlquantify/tree/master/mlquantify/likelihood/_generalized.py#L99-L115"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mlquantify.likelihood.MLPE.predict" title="Link to this definition">#</a></dt>
 <dd><p>Return the training prevalence, ignoring <code class="docutils literal notranslate"><span class="pre">X</span></code>.</p>
 <p>MLPE is the trivial baseline: it estimates the test prevalence as the
 observed training prevalence, so the test features are not used.</p>
@@ -954,7 +951,7 @@ parameters and not others.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="mlquantify.likelihood.MLPE.set_params">
-<span class="sig-name descname"><span class="pre">set_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/luizfernandolj/mlquantify/tree/master/mlquantify/base_aggregative.py#L229-L249"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mlquantify.likelihood.MLPE.set_params" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">set_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/luizfernandolj/mlquantify/tree/master/mlquantify/likelihood.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mlquantify.likelihood.MLPE.set_params" title="Link to this definition">#</a></dt>
 <dd><p>Set the parameters of this estimator.</p>
 <p>The method works on simple estimators as well as on nested objects
 (such as <a class="reference external" href="https://scikit-learn.org/stable/modules/generated/sklearn.pipeline.Pipeline.html#sklearn.pipeline.Pipeline" title="(in scikit-learn v1.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Pipeline</span></code></a>). The latter have

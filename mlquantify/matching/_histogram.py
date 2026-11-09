@@ -78,9 +78,10 @@ class MatchingHistogramQuantifier(BaseMatchingQuantifier):
     bin_strategy : str or None, default=None
         Aggregation strategy across bin sizes (``'median'`` or ``'mean'``).
     bin_edges : {'fixed', 'auto'}, default='fixed'
-        Where the bin edges are placed. ``'fixed'`` spans ``[0, 1]``, which
-        is right for histograms of posteriors; ``'auto'`` fits the edges to
-        the range of the training data, which is what raw features need.
+        Where the bin edges are placed. ``'fixed'`` spans ``range``,
+        ``[0, 1]`` by default, which is right for histograms of posteriors.
+        ``'auto'`` fits per-feature edges to the training data and leaves
+        the outer bins unbounded, which is what raw features need.
 
     Attributes
     ----------
@@ -649,9 +650,10 @@ class HDx(MatchingHistogramQuantifier):
             # siblings (HDy, DyS) keep the fixed [0, 1] edges, which is
             # right for posteriors. With fixed edges here every feature
             # value outside [0, 1] fell out of the histogram, and the
-            # estimate stopped depending on the test sample. Edges fitted
-            # to the training range still drop test values beyond it, but
-            # that is a tail rather than most of the data.
+            # estimate stopped depending on the test sample. Fitted edges
+            # keep their outer bins open, at -inf and +inf, so test values
+            # beyond the training range land in the end bins instead of
+            # being dropped.
             bin_edges="auto",
         )
 

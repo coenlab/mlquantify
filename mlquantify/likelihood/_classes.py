@@ -445,6 +445,13 @@ class CDE(BaseLikelihoodQuantifier):
     :class:`~mlquantify.counting.ACC`, which corrects by measured TPR and FPR
     instead of iterating a threshold, holds up across the whole range.
 
+    That ordering is not an artefact of these runs. Tasche (2017) shows by
+    counter-example that CDE-Iterate is not Fisher consistent, while adjusted
+    count and the EM algorithm are: the iteration carries no guarantee of
+    recovering the true prevalence even under pure prior probability shift,
+    which is the shift it targets. The table above is that failure showing up
+    as the scorer degrades.
+
     The iteration itself converges quickly: 3 to 8 passes in the runs above,
     far short of ``max_iter``.
 
@@ -471,9 +478,14 @@ class CDE(BaseLikelihoodQuantifier):
     ----------
     .. dropdown:: References
 
-        .. [1] Barranquero, J., Díez, J., & del Coz, J. J. (2015).
-               Quantification-Oriented Learning Based on Reliable Classifiers.
-               *Pattern Recognition*, 48(2), 591–604.
+        .. [1] Xue, J. C., & Weiss, G. M. (2009).
+               Quantification and Semi-Supervised Classification Methods for
+               Handling Changes in Class Distribution.
+               *Proceedings of the 15th ACM SIGKDD International Conference on
+               Knowledge Discovery and Data Mining (KDD '09)*, 897–906.
+        .. [2] Tasche, D. (2017).
+               Fisher Consistency for Prior Probability Shift.
+               *Journal of Machine Learning Research*, 18(95), 1–32.
     """
 
     _parameter_constraints = {

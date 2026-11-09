@@ -387,7 +387,7 @@ a full **documentation standardisation** across every module.
 
 ---
 
-## [Unreleased] — v0.3.0
+## [v0.3.0]
 
 ### New Modules
 
@@ -473,6 +473,7 @@ quantifier = CC(estimator=LogisticRegression())
 
 ---
 
-[v0.5.0]: https://github.com/luizfernandolj/mlquantify/compare/v0.4.0...v0.5.0
-[v0.4.0]: https://github.com/luizfernandolj/mlquantify/compare/v0.3.0...v0.4.0
-[Unreleased]: https://github.com/luizfernandolj/mlquantify/compare/v0.5.0...HEAD
+[v0.5.0]: https://github.com/coenlab/mlquantify/compare/v0.4.0...v0.5.0
+[v0.4.0]: https://github.com/coenlab/mlquantify/compare/v0.3.0...v0.4.0
+[v0.3.0]: https://github.com/coenlab/mlquantify/compare/v0.2.1...v0.3.0
+[Unreleased]: https://github.com/coenlab/mlquantify/compare/v0.5.1...HEAD

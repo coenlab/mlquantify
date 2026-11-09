@@ -32,12 +32,12 @@ class MLPE(SoftPredictionMixin, AggregativeMixin, LikelihoodComposeQuantifier):
     solver, tau_0, tau_1 : optional
         Retained for interface compatibility with the likelihood-composition
         framework; unused by this trivial baseline.
-    cv : int or None, default=None
-        Cross-validation folds used when fitting the (unused) estimator.
-    stratified : bool, default=True
-        Whether to stratify CV splits.
-    shuffle : bool, default=False
-        Whether to shuffle data before splitting.
+    cv, stratified, shuffle : optional
+        Accepted for signature compatibility with the aggregative
+        quantifiers, and ignored: there is no cross-validation to
+        configure. The estimator is fitted once, because the estimate is
+        the training prevalence and never reads the estimator's
+        predictions.
     random_state : int or None, default=None
         Random seed for reproducibility.
 
@@ -133,6 +133,11 @@ class MLPE(SoftPredictionMixin, AggregativeMixin, LikelihoodComposeQuantifier):
 
         A single fit is kept so that ``estimator_`` is still there after
         ``fit``, as it is for every other aggregative quantifier.
+
+        ``y`` is returned unchanged. The cross-validated path returned it
+        in fold order -- a permutation of the same labels -- and the caller
+        uses it only to compute ``train_priors_``, which a permutation does
+        not change. That is why the estimate is unaffected.
 
         ``cv``, ``stratified``, ``shuffle`` and the local ``random_state``
         are accepted and ignored, which is what the class docstring already

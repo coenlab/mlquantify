@@ -26,12 +26,13 @@ def _estimator():
 
 def _make(Quantifier):
     """Construct a quantifier, supplying an estimator only when it takes one."""
-    if Quantifier is PWK:  # k-NN based, no wrapped estimator
-        return Quantifier()
+    if Quantifier in (PWK, MLPE):  # no wrapped estimator: k-NN based, and
+        return Quantifier()        # MLPE, which is non-aggregative
     return Quantifier(_estimator())
 
 
-# Natively-multiclass aggregative quantifiers (counting, likelihood, neighbors).
+# Natively-multiclass quantifiers (counting, likelihood, neighbors). All
+# aggregative except MLPE, which takes no estimator.
 MULTICLASS_QUANTIFIERS = [
     CC, PCC, ACC, FM, GACC, GPACC, MS, MS2, T50, TAC, TMAX, TX,
     EMQ, CDE, MLPE, PWK,
@@ -98,7 +99,9 @@ def test_aggregate_classes_none_uses_fitted(Quantifier):
     _assert_full_prevalence(out, n_classes=3)
 
 
-@pytest.mark.parametrize("Quantifier", [CC, PCC, EMQ, MLPE])
+# MLPE is out: being non-aggregative it has no ``estimator_`` to read
+# posteriors from, and its ``aggregate`` does not depend on them.
+@pytest.mark.parametrize("Quantifier", [CC, PCC, EMQ])
 def test_aggregate_classes_direct(Quantifier):
     """Quantifiers whose ``aggregate`` is self-contained honour ``classes`` and
     return a prevalence spanning exactly those classes."""

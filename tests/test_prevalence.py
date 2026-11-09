@@ -91,3 +91,23 @@ def test_one_vs_rest_never_returns_a_zero_sum_vector():
                 estimate = np.asarray(q.predict(sample), dtype=float)
             assert np.all(np.isfinite(estimate)), Quantifier.__name__
             assert estimate.sum() == pytest.approx(1.0), Quantifier.__name__
+
+
+@pytest.mark.parametrize("prev", [[-0.1, -0.2, -0.3], [-0.5, 0.5, 0.0]])
+def test_normalize_prevalences_non_positive_sum_is_uniform(prev):
+    """The guard is ``sum > 0``, so a non-positive sum falls back to uniform too.
+
+    A vector summing to zero or less is not a prevalence vector either, and
+    dividing by its sum would flip every sign. Uniform is already this
+    library's answer for a non-positive sum.
+    """
+    from mlquantify.utils._validation import normalize_prevalences
+
+    result = np.asarray(
+        normalize_prevalences(np.asarray(prev, dtype=float), classes=[0, 1, 2]),
+        dtype=float,
+    )
+
+    assert np.all(np.isfinite(result))
+    assert result.sum() == pytest.approx(1.0)
+    assert result == pytest.approx([1 / 3, 1 / 3, 1 / 3])

@@ -6,6 +6,25 @@ All notable changes to mlquantify will be documented in this file.
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- **`MLPE` no longer takes an estimator, and is no longer aggregative.**
+  `MLPE(LogisticRegression())` now raises `TypeError`; `estimator`, `cv`,
+  `stratified` and `shuffle` are gone from the signature, the remaining
+  parameters are keyword-only, and there is no `estimator_` after `fit`.
+  **The estimate does not change**: it was always the training prevalence,
+  read from the labels. Migration is to drop the argument -- `MLPE()`.
+
+  The one fit that remained was the entire cost of the method. `CC`, which
+  trains one classifier and nothing else, cost 0.0523 s against `MLPE`'s
+  0.0571 s over 142 datasets, and QuaPy's `MLPE`, which is non-aggregative
+  and counts labels in two lines, cost 0.0001 s -- a ratio of 347x for work
+  the estimate never used. `fit` now takes 0.55 ms instead of about 57 ms.
+  Against QuaPy the training-time ratio falls from 347x to 4.99x, training
+  memory from 6.90x to 2.04x, estimation memory from 1.90x to 1.00x, and
+  training plus estimation from 8.51x to 1.38x. The whole method over 142
+  datasets takes 50 s of CPU, against 40 min. (#14)
+
 ### Fixed
 
 - **`HDx` bins raw features on their own scale, and its estimates change.** It

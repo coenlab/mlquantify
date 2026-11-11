@@ -1,10 +1,11 @@
 
 import numpy as np
+from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.neighbors import NearestNeighbors
 
 
 
-class PWKCLF:
+class PWKCLF(ClassifierMixin, BaseEstimator):
     r"""Probabilistic Weighted k-Nearest Neighbor Classifier (PWKCLF).
 
     A weighted k-nearest neighbor classifier that assigns class probabilities to 
@@ -61,16 +62,18 @@ class PWKCLF:
                  p=2,
                  metric_params=None,
                  n_jobs=None):
+        # Only store the constructor arguments here. ``get_params`` reads them
+        # back by name, and ``sklearn.base.clone`` rebuilds the estimator from
+        # them -- so every argument must survive as an attribute of the same
+        # name, and no work may happen before ``fit``.
         self.alpha = alpha
         self.n_neighbors = n_neighbors
-
-        self.nbrs = NearestNeighbors(n_neighbors=n_neighbors,
-                                     algorithm=algorithm,
-                                     leaf_size=leaf_size,
-                                     metric=metric,
-                                     p=p,
-                                     metric_params=metric_params,
-                                     n_jobs=n_jobs)
+        self.algorithm = algorithm
+        self.metric = metric
+        self.leaf_size = leaf_size
+        self.p = p
+        self.metric_params = metric_params
+        self.n_jobs = n_jobs
 
         self.classes_ = None
         self.class_to_index = None
@@ -95,9 +98,18 @@ class PWKCLF:
             The fitted instance.
         """
         n_samples = X.shape[0]
-        if n_samples < self.n_neighbors:
-            self.nbrs.set_params(n_neighbors=n_samples)
-            
+        # Built here, not in ``__init__``: a scikit-learn estimator must do no
+        # work before ``fit``, and the neighbour count depends on the training
+        # set when it is smaller than ``n_neighbors``.
+        self.nbrs = NearestNeighbors(
+            n_neighbors=min(self.n_neighbors, n_samples),
+            algorithm=self.algorithm,
+            leaf_size=self.leaf_size,
+            metric=self.metric,
+            p=self.p,
+            metric_params=self.metric_params,
+            n_jobs=self.n_jobs)
+
         self.y_train = y
         
         unique_classes, class_counts = np.unique(y, return_counts=True)

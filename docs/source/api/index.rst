@@ -2163,6 +2163,25 @@ reference on core concepts, see the :ref:`Foundations <quantification_foundation
 
 
 
+  * - :obj:`~mlquantify.neighbors.PWKAC`
+
+    - .. div:: sk-apisearch-desc
+
+        .. currentmodule:: mlquantify.neighbors
+
+        .. autoshortsummary:: mlquantify.neighbors.PWKAC
+
+        .. div:: caption
+
+          :mod:`mlquantify.neighbors`
+
+
+
+
+
+
+
+
 
   * - :obj:`~mlquantify.neural.QuaNet`
 

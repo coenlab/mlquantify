@@ -1,5 +1,6 @@
 from ._classes import (
     PWK,
+    PWKAC,
 )
 
-__all__ = ["PWK"]
+__all__ = ["PWK", "PWKAC"]

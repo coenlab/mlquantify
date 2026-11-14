@@ -6,6 +6,44 @@ All notable changes to mlquantify will be documented in this file.
 
 ## [Unreleased]
 
+### New Features
+
+- **`PWKAC`: the PWK quantifier as Barranquero et al. (2013) propose it,
+  with leave-one-out rates.** `mlquantify.neighbors` had only `PWK`, which is
+  `class PWK(CC)` -- the weighted k-NN rule under plain classify-and-count.
+  That is the classifier of the paper inside a different quantifier. The
+  method the paper proposes is an adjusted count, and its whole argument for
+  nearest neighbours is the way the rates are estimated: the correction is
+  only as good as the `TPR` and `FPR` it divides by, and k-NN is the one
+  learner that can afford leave-one-out, because the neighbour query is made
+  once and every fold reads from it. `PWKAC` is that method.
+
+  `PWKAC` replaces the cross-validation of `ACC` with one neighbour query:
+  it asks for `n_neighbors + 1` neighbours of each training point and drops
+  the first, which is the point itself. Cross-validation would estimate the
+  rates of a classifier trained on a fraction of the data and cost k
+  neighbour structures; resubstitution -- labelling the training set with the
+  fitted rule -- would let each point vote for itself at distance zero, and
+  under the PWK weights that self-vote is the heaviest of all when the point
+  belongs to the minority class.
+
+  Measured on 12 binary datasets, against the truth (the rates of the fitted
+  rule on a held-out half), leave-one-out is closest on 6 of them with a mean
+  deviation of 0.0769, resubstitution on 5 with 0.0903, and 5-fold
+  cross-validation on 1 with 0.0877. The spread matters more than the
+  average: resubstitution is accurate where the problem is easy and
+  optimistic where it is not. On `haberman` the true `TPR` is 0.415 and
+  resubstitution reports 0.675; on `sonar`, 0.729 against 0.857 -- precisely
+  the datasets where the adjustment is doing work.
+
+  The correction itself is what `PWK` lacks. On an imbalanced problem
+  (400 examples, 25% positives) `PWK` returns 0.385 against a true 0.250,
+  while `PWKAC` returns 0.254.
+
+  `PWK` is unchanged and stays in the API: classify-and-count over the
+  weighted rule is a legitimate baseline, and several comparative studies
+  catalogue PWK that way.
+
 ### Breaking Changes
 
 - **`MLPE` no longer takes an estimator, and is no longer aggregative.**
@@ -67,6 +105,13 @@ All notable changes to mlquantify will be documented in this file.
   unchanged.** (#6)
 
 ### Documentation
+
+- **`PWK`'s reference pointed at the wrong paper.** It cited Barranquero,
+  Diez & del Coz (2013), *Quantification-Oriented Learning Based on Reliable
+  Classifiers*, *Pattern Recognition* 48(2), 591-604 -- which is the Q-measure
+  paper, from 2015. PWK is from Barranquero, Gonzalez, Diez & del Coz (2013),
+  *On the study of nearest neighbor algorithms for prevalence estimation in
+  binary problems*, *Pattern Recognition* 46(2), 472-482.
 
 - `CDE` documents when the iteration helps and when it turns against you. The
   cost update has an amplifying fixed point, which is what corrects `CC`'s

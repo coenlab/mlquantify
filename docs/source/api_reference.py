@@ -211,6 +211,7 @@ API_REFERENCE = {
                 "title": "Neighbor-based Methods",
                 "autosummary": [
                     "PWK",
+                    "PWKAC",
                 ],
             }
         ],
